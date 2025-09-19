@@ -1,7 +1,7 @@
+// components/ImageUpload.js - Users never touch Synapse
 import { useState } from 'react';
 import { useAccount, useWalletClient, usePublicClient } from 'wagmi';
 import { Upload, X, Image as ImageIcon } from 'lucide-react';
-import { zgStorage } from '@/lib/0g-storage';
 import { getContractService } from '@/lib/contract';
 import toast from 'react-hot-toast';
 
@@ -13,11 +13,10 @@ export default function ImageUpload({ onUploadSuccess }) {
   const { data: walletClient } = useWalletClient();
   const publicClient = usePublicClient();
 
-  // Handle file selection
   const handleFileSelect = (file) => {
     if (file && file.type.startsWith('image/')) {
-      if (file.size > 10 * 1024 * 1024) { // 10MB limit
-        toast.error('File size must be less than 10MB');
+      if (file.size > 200 * 1024 * 1024) {
+        toast.error('File size must be less than 200MB');
         return;
       }
       setSelectedFile(file);
@@ -26,7 +25,6 @@ export default function ImageUpload({ onUploadSuccess }) {
     }
   };
 
-  // Handle drag and drop
   const handleDrag = (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -47,68 +45,70 @@ export default function ImageUpload({ onUploadSuccess }) {
     }
   };
 
-  // Upload workflow using simplified method
   const uploadPost = async () => {
-    if (!selectedFile || !address) {
-      toast.error('Please select a file and ensure wallet is connected');
-      return;
-    }
-
-    // Check if we can create contract service
-    if (!publicClient) {
-      toast.error('Wallet connection not ready. Please try again.');
+    if (!selectedFile || !address || !publicClient || !walletClient) {
+      toast.error('Please ensure wallet is connected and file is selected');
       return;
     }
 
     setUploading(true);
-    const loadingToast = toast.loading('Preparing upload...');
+    const loadingToast = toast.loading('Uploading to Filecoin...');
 
     try {
-      // Step 1: Upload image using simplified method (avoids Node.js dependencies)
-      toast.loading('Processing image...', { id: loadingToast });
-      console.log('Starting upload for file:', selectedFile.name);
+      // Step 1: Upload to server (which handles all Filecoin complexity)
+      const formData = new FormData();
+      formData.append('file', selectedFile);
       
-      const uploadResult = await zgStorage.uploadImage(selectedFile, walletClient);
-      console.log('Upload successful:', uploadResult);
+      toast.loading('Processing and uploading to Filecoin...', { id: loadingToast });
       
-      // Step 2: Create post on smart contract with hash
+      const uploadResponse = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+      console.log('uploading to filecoin via synsape sdk',uploadResponse)
+      if (!uploadResponse.ok) {
+        const errorData = await uploadResponse.json();
+        throw new Error(errorData.error || 'Upload failed');
+      }
+      
+      const uploadResult = await uploadResponse.json();
+      console.log('Server upload successful:', uploadResult);
+      
+      // Step 2: Only blockchain transaction user needs to sign
       toast.loading('Creating post on blockchain...', { id: loadingToast });
-      console.log('Creating post with root hash:', uploadResult.rootHash);
       
-      // Pass wagmi clients to contract service
       const contractService = getContractService(publicClient, walletClient);
-      const contractResult = await contractService.createPost(uploadResult.rootHash);
-      console.log('Contract transaction successful:', contractResult);
+      const cid = typeof uploadResult.pieceCid === "object"
+         ? uploadResult.pieceCid["/"]
+       : uploadResult.pieceCid;
       
+       const contractResult = await contractService.createPost(cid);      
       if (contractResult.success) {
         toast.success('Post created successfully!', { id: loadingToast });
         
-        // Reset form
         setSelectedFile(null);
         
-        // Callback to parent component
         if (onUploadSuccess) {
-          onUploadSuccess({
-            ...uploadResult,
-            contractTx: contractResult.hash,
-            postCreated: true
-          });
+          
+            onUploadSuccess(uploadResult.pieceCid);
+        
         }
       } else {
-        throw new Error('Transaction failed');
+        throw new Error('Blockchain transaction failed');
       }
 
     } catch (error) {
       console.error('Upload failed:', error);
       
-      // Better error handling
       let errorMessage = 'Upload failed';
-      if (error.message.includes('wallet provider')) {
-        errorMessage = 'Wallet connection issue. Please reconnect and try again.';
+      if (error.message.includes('File too large')) {
+        errorMessage = 'File too large (maximum 200 MB)';
+      } else if (error.message.includes('Storage service temporarily unavailable')) {
+        errorMessage = 'Storage service temporarily unavailable. Please try again later.';
       } else if (error.message.includes('user rejected')) {
-        errorMessage = 'Transaction cancelled by user';
+        errorMessage = 'Transaction cancelled';
       } else if (error.message) {
-        errorMessage = `Upload failed: ${error.message}`;
+        errorMessage = error.message;
       }
       
       toast.error(errorMessage, { id: loadingToast });
@@ -117,9 +117,7 @@ export default function ImageUpload({ onUploadSuccess }) {
     }
   };
 
-  const removeFile = () => {
-    setSelectedFile(null);
-  };
+  const removeFile = () => setSelectedFile(null);
 
   if (!isConnected) {
     return (
@@ -162,7 +160,7 @@ export default function ImageUpload({ onUploadSuccess }) {
                   Drop an image here, or click to select
                 </span>
                 <span className="mt-1 block text-xs text-rose-100">
-                  PNG, JPG, GIF up to 10MB
+                  PNG, JPG, GIF up to 200MB • Storage is FREE!
                 </span>
               </label>
               <input
@@ -199,26 +197,31 @@ export default function ImageUpload({ onUploadSuccess }) {
         {selectedFile && (
           <button
             onClick={uploadPost}
-            disabled={uploading || !publicClient}
-            className="w-full bg-[#ED3968] text-white py-3 px-4 rounded-lg hover:bg-rose-500 disabled:bg-[#ED3968] disabled:cursor-not-allowed flex items-center justify-center space-x-2 hover:cursor-pointer"
+            disabled={uploading}
+            className="w-full bg-[#ED3968] text-white py-3 px-4 rounded-lg hover:bg-rose-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
           >
             {uploading ? (
               <>
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                <span>Uploading...</span>
+                <span>Uploading to Filecoin...</span>
               </>
             ) : (
               <>
                 <Upload className="h-4 w-4" />
-                <span>Share to Blockchain</span>
+                <span>Share to Filecoin (Free!)</span>
               </>
             )}
           </button>
         )}
         
         {selectedFile && !uploading && (
-          <div className="text-xs text-gray-500 text-center">
-            Your image will be stored securely and linked to your wallet
+          <div className="text-xs text-center space-y-1">
+            <p className="text-gray-500">
+              Your image will be stored permanently on Filecoin's decentralized network
+            </p>
+            <p className="text-green-400 font-medium">
+              ✨ No storage fees • No approvals • Just upload and share!
+            </p>
           </div>
         )}
       </div>

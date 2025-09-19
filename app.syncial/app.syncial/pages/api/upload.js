@@ -1,40 +1,79 @@
-import fs from "fs";
-import path from "path";
-import { Indexer, ZgFile } from "@0glabs/0g-ts-sdk";
-import { ethers } from "ethers";
+// pages/api/upload.js
+import { uploadToFilecoin } from '../../lib/server-side-synapse';
+import { IncomingForm } from 'formidable';
+import fs from 'fs';
 
-const RPC_URL = process.env.RPC_URL;
-const PRIVATE_KEY = process.env.PRIVATE_KEY;
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};
 
 export default async function handler(req, res) {
-  try {
-    const { fileBuffer, fileName, signature, address } = req.body;
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
 
-    // Optional: verify signature
-    const recovered = ethers.verifyMessage("I am uploading a file to 0G", signature);
-    if (recovered.toLowerCase() !== address.toLowerCase()) {
-      return res.status(401).json({ error: "Signature verification failed" });
+  let tempFilePath = null;
+
+  try {
+    // Parse multipart form data
+    const form = new IncomingForm({
+      maxFileSize: 200 * 1024 * 1024, // 200MB limit
+    });
+
+    const [fields, files] = await form.parse(req);
+    
+    const file = files.file?.[0];
+    if (!file) {
+      return res.status(400).json({ error: 'No file provided' });
     }
 
-    // Save file temporarily
-    const filePath = path.join("/tmp", fileName);
-    await fs.promises.writeFile(filePath, Buffer.from(fileBuffer));
-
-    // Upload via 0G SDK
-    const file = await ZgFile.fromFilePath(filePath);
-    const [tree] = await file.merkleTree();
-
-    const provider = new ethers.JsonRpcProvider(RPC_URL);
-    const signer = new ethers.Wallet(PRIVATE_KEY, provider);
-
-    const indexer = new Indexer();
-    const [tx, uploadErr] = await indexer.upload(file, RPC_URL, signer);
-    if (uploadErr) throw new Error(uploadErr);
-
-    await file.close();
-    res.status(200).json({ tx, rootHash: tree?.rootHash() });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: err.message });
+    tempFilePath = file.filepath;
+    
+    // Read file into buffer
+    const fileBuffer = fs.readFileSync(file.filepath);
+    
+    console.log('Received file:', file.originalFilename, 'Size:', fileBuffer.length);
+    
+    // Upload to Filecoin using your centralized wallet
+    const result = await uploadToFilecoin(fileBuffer, file.originalFilename);
+    
+    // Return PieceCID to client
+    res.status(200).json({
+      success: true,
+      pieceCid: result.pieceCid,
+      size: result.size,
+      fileName: result.fileName
+    });
+    
+  } catch (error) {
+    console.error('Upload API error:', error);
+    
+    let statusCode = 500;
+    let message = 'Upload failed';
+    
+    if (error.message.includes('File too large')) {
+      statusCode = 400;
+      message = 'File too large (maximum 200 MB)';
+    } else if (error.message.includes('File too small')) {
+      statusCode = 400;
+      message = 'File too small (minimum 127 bytes)';
+    } else if (error.message.includes('insufficient funds')) {
+      statusCode = 503;
+      message = 'Storage service temporarily unavailable';
+    }
+    
+    res.status(statusCode).json({ error: message });
+    
+  } finally {
+    // Clean up temp file
+    if (tempFilePath && fs.existsSync(tempFilePath)) {
+      try {
+        fs.unlinkSync(tempFilePath);
+      } catch (cleanupError) {
+        console.warn('Failed to clean up temp file:', cleanupError);
+      }
+    }
   }
 }

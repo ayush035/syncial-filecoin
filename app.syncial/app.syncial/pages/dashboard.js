@@ -18,18 +18,16 @@ export default function Dashboard() {
   const publicClient = usePublicClient();
   const { data: walletClient } = useWalletClient();
 
-  // Initialize contractService using wagmi providers instead of window.ethereum
+  // Initialize contractService using wagmi providers
   useEffect(() => {
     if (isConnected && address && publicClient) {
       try {
-        // Only try to initialize if we have window.ethereum OR if we can create a service with wagmi
         if (typeof window !== "undefined" && (window.ethereum || publicClient)) {
           const service = getContractService(publicClient, walletClient);
           setContractService(service);
         }
       } catch (error) {
         console.error('Contract service initialization failed:', error.message);
-        // Don't set contractService if it fails - this prevents the loadUserPosts from running
         setContractService(null);
       }
     } else {
@@ -38,7 +36,6 @@ export default function Dashboard() {
   }, [isConnected, address, publicClient, walletClient]);
 
   const loadUserPosts = async () => {
-    // Don't try to load posts if no contract service available
     if (!isConnected || !address || !contractService) {
       console.log('Skipping post loading - missing requirements:', { 
         isConnected, 
@@ -51,12 +48,18 @@ export default function Dashboard() {
     setLoading(true);
     try {
       console.log('Loading posts for address:', address);
-      // Pass the user address to getUserPosts
       const posts = await contractService.getUserPosts(address);
       console.log('Loaded user posts:', posts);
       
-      const sortedPosts = posts.sort((a, b) => b.timestampUnix - a.timestampUnix);
-      setUserPosts(sortedPosts);
+      // Format posts for Synapse - image field contains PieceCID
+      const formattedPosts = posts.map(post => ({
+           ...post,
+             pieceCid: post.image, // normalize name
+             timestamp: post.timestampUnix * 1000
+           }));
+        
+           const sortedPosts = formattedPosts.sort((a, b) => b.timestampUnix - a.timestampUnix);
+           setUserPosts(sortedPosts);
 
       const totalGlobal = await contractService.getTotalPosts();
       setStats({
@@ -66,7 +69,6 @@ export default function Dashboard() {
 
     } catch (error) {
       console.error('Error loading posts:', error);
-      // Show a more helpful error message
       if (error.message.includes('Unable to fetch user posts')) {
         toast.error('Unable to load posts with current connection. Try refreshing or reconnecting your wallet.');
       } else if (!error.message.includes('wallet provider') && !error.message.includes('MetaMask')) {
@@ -83,11 +85,25 @@ export default function Dashboard() {
 
   const handleUploadSuccess = (result) => {
     console.log('Upload successful:', result);
-    toast.success('Post created! It may take a moment to appear.');
-    setTimeout(() => {
-      loadUserPosts();
-    }, 2000);
-  };
+    toast.success('Post created! Your image is now stored on Filecoin.');
+    
+      // Always extract CID safely
+      const cid = typeof result === 'string' ? result : result.pieceCid;
+    
+      setUserPosts(prev => [
+        {
+          id: Date.now(), // temporary ID
+          pieceCid: cid,
+          author: address,
+          timestamp: Date.now(),
+          timestampUnix: Math.floor(Date.now() / 1000),
+        },
+        ...prev,
+      ]);
+    
+      // Refresh after a short delay
+      setTimeout(() => loadUserPosts(), 2000);
+      };
 
   const handleRefresh = () => {
     loadUserPosts();
@@ -112,9 +128,9 @@ export default function Dashboard() {
           <h1 className="text-3xl font-bold text-white mb-2">
             Your Dashboard
           </h1>
-          {/* <p className="text-gray-600">
-            Manage your posts stored on 0G decentralized network
-          </p> */}
+          <p className="text-gray-400">
+            Manage your posts stored on Filecoin's decentralized network
+          </p>
         </div>
 
         {/* Stats Cards */}
@@ -160,18 +176,18 @@ export default function Dashboard() {
           
           {loading && userPosts.length === 0 ? (
             <div className="text-center py-12">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-              <p className="text-gray-600">Loading your posts from the blockchain...</p>
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#ED3968] mx-auto mb-4"></div>
+              <p className="text-gray-400">Loading your posts from the blockchain...</p>
             </div>
           ) : userPosts.length === 0 ? (
             <div className="text-center py-12">
               <ImageIcon className="mx-auto h-16 w-16 text-gray-400 mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No posts yet</h3>
-              <p className="text-gray-600 mb-6">
+              <h3 className="text-lg font-medium text-white mb-2">No posts yet</h3>
+              <p className="text-gray-400 mb-6">
                 Share your first image to get started!
               </p>
               <div className="text-sm text-gray-500">
-                Your images will be stored permanently on the 0G decentralized network
+                Your images will be stored permanently on Filecoin's decentralized network
               </div>
             </div>
           ) : (
