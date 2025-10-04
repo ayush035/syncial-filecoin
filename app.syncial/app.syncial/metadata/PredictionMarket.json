@@ -1,0 +1,424 @@
+{
+	"compiler": {
+		"version": "0.8.30+commit.73712a01"
+	},
+	"language": "Solidity",
+	"output": {
+		"abi": [
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "_pyth",
+						"type": "address"
+					},
+					{
+						"internalType": "address",
+						"name": "_platform",
+						"type": "address"
+					}
+				],
+				"stateMutability": "nonpayable",
+				"type": "constructor"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "pollId",
+						"type": "uint256"
+					},
+					{
+						"indexed": false,
+						"internalType": "address",
+						"name": "bettor",
+						"type": "address"
+					},
+					{
+						"indexed": false,
+						"internalType": "bool",
+						"name": "option",
+						"type": "bool"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "amount",
+						"type": "uint256"
+					}
+				],
+				"name": "BetPlaced",
+				"type": "event"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "pollId",
+						"type": "uint256"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "maxPrice",
+						"type": "uint256"
+					}
+				],
+				"name": "MaxPriceUpdated",
+				"type": "event"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "pollId",
+						"type": "uint256"
+					},
+					{
+						"indexed": false,
+						"internalType": "string",
+						"name": "question",
+						"type": "string"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "startTime",
+						"type": "uint256"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "endTime",
+						"type": "uint256"
+					}
+				],
+				"name": "PollCreated",
+				"type": "event"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "pollId",
+						"type": "uint256"
+					},
+					{
+						"indexed": false,
+						"internalType": "bool",
+						"name": "outcome",
+						"type": "bool"
+					}
+				],
+				"name": "PollResolved",
+				"type": "event"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "string",
+						"name": "_question",
+						"type": "string"
+					},
+					{
+						"internalType": "uint256",
+						"name": "_duration",
+						"type": "uint256"
+					},
+					{
+						"internalType": "bytes32",
+						"name": "_assetPriceId",
+						"type": "bytes32"
+					},
+					{
+						"internalType": "bytes32",
+						"name": "_hbarPriceId",
+						"type": "bytes32"
+					},
+					{
+						"internalType": "int256",
+						"name": "_targetPrice",
+						"type": "int256"
+					}
+				],
+				"name": "createPoll",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "_pollId",
+						"type": "uint256"
+					},
+					{
+						"internalType": "address",
+						"name": "_user",
+						"type": "address"
+					}
+				],
+				"name": "getUserBets",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "yes",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "no",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "_pollId",
+						"type": "uint256"
+					},
+					{
+						"internalType": "bool",
+						"name": "_option",
+						"type": "bool"
+					}
+				],
+				"name": "placeBet",
+				"outputs": [],
+				"stateMutability": "payable",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "platform",
+				"outputs": [
+					{
+						"internalType": "address",
+						"name": "",
+						"type": "address"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "pollCount",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"name": "polls",
+				"outputs": [
+					{
+						"internalType": "string",
+						"name": "question",
+						"type": "string"
+					},
+					{
+						"internalType": "uint256",
+						"name": "startTime",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "endTime",
+						"type": "uint256"
+					},
+					{
+						"internalType": "bytes32",
+						"name": "assetPriceId",
+						"type": "bytes32"
+					},
+					{
+						"internalType": "bytes32",
+						"name": "hbarPriceId",
+						"type": "bytes32"
+					},
+					{
+						"internalType": "int256",
+						"name": "targetPrice",
+						"type": "int256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "maxPriceDuringPoll",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "totalYes",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "totalNo",
+						"type": "uint256"
+					},
+					{
+						"internalType": "bool",
+						"name": "isResolved",
+						"type": "bool"
+					},
+					{
+						"internalType": "address",
+						"name": "host",
+						"type": "address"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "pyth",
+				"outputs": [
+					{
+						"internalType": "contract IPyth",
+						"name": "",
+						"type": "address"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "_pollId",
+						"type": "uint256"
+					}
+				],
+				"name": "resolvePoll",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "_pollId",
+						"type": "uint256"
+					}
+				],
+				"name": "updateMaxPrice",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			}
+		],
+		"devdoc": {
+			"kind": "dev",
+			"methods": {},
+			"version": 1
+		},
+		"userdoc": {
+			"kind": "user",
+			"methods": {
+				"createPoll(string,uint256,bytes32,bytes32,int256)": {
+					"notice": "Create a new prediction poll"
+				},
+				"getUserBets(uint256,address)": {
+					"notice": "Helper to get user bets"
+				},
+				"placeBet(uint256,bool)": {
+					"notice": "Place a bet in HBAR on Yes/No"
+				},
+				"resolvePoll(uint256)": {
+					"notice": "Resolve the poll"
+				},
+				"updateMaxPrice(uint256)": {
+					"notice": "Update the max price during poll"
+				}
+			},
+			"version": 1
+		}
+	},
+	"settings": {
+		"compilationTarget": {
+			"contracts/predict.sol": "HBARPredictionMarketplace"
+		},
+		"evmVersion": "prague",
+		"libraries": {},
+		"metadata": {
+			"bytecodeHash": "ipfs"
+		},
+		"optimizer": {
+			"enabled": false,
+			"runs": 200
+		},
+		"remappings": []
+	},
+	"sources": {
+		"@openzeppelin/contracts/security/ReentrancyGuard.sol": {
+			"keccak256": "0xa535a5df777d44e945dd24aa43a11e44b024140fc340ad0dfe42acf4002aade1",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://41319e7f621f2dc3733511332c4fd032f8e32ad2aa7fd6f665c19741d9941a34",
+				"dweb:/ipfs/QmcYR3bd862GD1Bc7jwrU9bGxrhUu5na1oP964bDCu2id1"
+			]
+		},
+		"@pythnetwork/pyth-sdk-solidity/IPyth.sol": {
+			"keccak256": "0xada6a1f4898b056d2804409ecad466b786dc6a12bc6f8f247e7f1471c1b86fcd",
+			"license": "Apache-2.0",
+			"urls": [
+				"bzz-raw://ecee3c205896236fc11bfb1367f033353448fa462b08e5212a32e767f72022c9",
+				"dweb:/ipfs/QmeEQpRRza2Swm2gCCC61TDxQ2GNLjqPhdtbSznADMuMni"
+			]
+		},
+		"@pythnetwork/pyth-sdk-solidity/IPythEvents.sol": {
+			"keccak256": "0xd67239becd2c39bd9d065830be24e70606f5747ab31b8818bea849d09ac17ddc",
+			"license": "Apache-2.0",
+			"urls": [
+				"bzz-raw://e719bd2d8c1d8d46713aeb700dd6b5ddd766a77830ea9ae3cc9327f67ed775d1",
+				"dweb:/ipfs/QmNQYyRVFLEvLsCSTkHkAemTvvZm4CzLN7hUdMidMcBS7u"
+			]
+		},
+		"@pythnetwork/pyth-sdk-solidity/PythStructs.sol": {
+			"keccak256": "0x474436bf0d558cc9b2c00a9d0ce318147acdf7963f34ef4acadb9248e65bbc7b",
+			"license": "Apache-2.0",
+			"urls": [
+				"bzz-raw://2b8f9bd9de35e67c7bdbf04d8c2e771718fcc8666456ca5f92dbd914e4a5f2b3",
+				"dweb:/ipfs/QmNP3ShBYRp4RiVbAudMB7rNHAqgtwn8pPBzb8JTUaViRh"
+			]
+		},
+		"contracts/predict.sol": {
+			"keccak256": "0x0cf25128320dbe77dcc85f18cf2c26ac93141aee1d90e608ecf29271a1e85a7e",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://91ac59921725001b91f59ba0e65d6be93fe3785ca4e4a4bab149299d3598ae7d",
+				"dweb:/ipfs/QmX4E4jHQwsAE5geXEBEyAegPKDPU9ng5zCbZvCYoWk74W"
+			]
+		}
+	},
+	"version": 1
+}

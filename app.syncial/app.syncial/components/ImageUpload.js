@@ -65,7 +65,7 @@ export default function ImageUpload({ onUploadSuccess }) {
         method: 'POST',
         body: formData,
       });
-      console.log('uploading to filecoin via synsape sdk',uploadResponse)
+
       if (!uploadResponse.ok) {
         const errorData = await uploadResponse.json();
         throw new Error(errorData.error || 'Upload failed');
