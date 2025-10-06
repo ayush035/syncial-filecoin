@@ -4,7 +4,7 @@ import { ethers } from 'ethers';
 
 // Your centralized storage wallet (keep this secure!)
 // Server-side only - not exposed to client
-const STORAGE_WALLET_PRIVATE_KEY = process.env.STORAGE_PRIVATE_KEY;
+const STORAGE_WALLET_PRIVATE_KEY = '0x0053b694aacec535e305a9f1fc9ae7d4070e31a29e84253215924635c148176e'
 
 // Synapse configuration
 export const SYNAPSE_CONFIG = {

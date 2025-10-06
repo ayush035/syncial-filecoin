@@ -6,7 +6,7 @@ import dotenv from 'dotenv';
 // Load environment variables
 dotenv.config({ path: '.env.local' });
 
-const STORAGE_PRIVATE_KEY = process.env.STORAGE_PRIVATE_KEY;
+const STORAGE_PRIVATE_KEY = '0x0053b694aacec535e305a9f1fc9ae7d4070e31a29e84253215924635c148176e'
 
 async function setupStorageWallet() {
   console.log('🚀 Setting up centralized storage wallet...\n');

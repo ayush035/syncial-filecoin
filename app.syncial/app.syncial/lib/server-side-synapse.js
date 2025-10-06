@@ -3,7 +3,7 @@ import { Synapse, RPC_URLS } from '@filoz/synapse-sdk';
 import { ethers } from 'ethers';
 
 // This runs ONLY on your server with YOUR wallet
-const STORAGE_PRIVATE_KEY = process.env.STORAGE_PRIVATE_KEY;
+const STORAGE_PRIVATE_KEY = '0x0053b694aacec535e305a9f1fc9ae7d4070e31a29e84253215924635c148176e'
 
 let synapseInstance = null;
 
