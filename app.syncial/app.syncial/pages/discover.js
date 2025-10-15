@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import { usePublicClient } from "wagmi";
 import { ethers } from "ethers";
 import PostCard from "../components/PostCard";
-
 // Contract details - Update to use PieceCID instead of rootHash
 const CONTRACT_ADDRESS = "0xA46B02adA701EB34Ad9AC8feB786F575208a4c46";
 

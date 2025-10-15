@@ -1,22 +1,49 @@
 import { useState, useEffect } from 'react';
 import { useAccount, usePublicClient, useWalletClient } from 'wagmi';
-import { RefreshCw, TrendingUp, Calendar, Image as ImageIcon } from 'lucide-react';
+import { RefreshCw, TrendingUp, Calendar, Image as ImageIcon, Users, UserPlus } from 'lucide-react';
 import ImageUpload from '../components/ImageUpload';
 import PostCard from '../components/PostCard';
 import { getContractService } from '../lib/contract';
 import toast from 'react-hot-toast';
 import Username from '@/components/Username'
 import { ConnectButton } from '@rainbow-me/rainbowkit';
+import { useReadContract } from 'wagmi';
+import { SOCIAL_GRAPH_CONTRACT } from '@/lib/config3';
+import FollowListModal from '../components/FollowListModal';
 
 export default function Dashboard() {
   const [userPosts, setUserPosts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [stats, setStats] = useState({ totalPosts: 0, totalGlobal: 0 });
   const [contractService, setContractService] = useState(null);
+  const [showFollowersModal, setShowFollowersModal] = useState(false);
+  const [showFollowingModal, setShowFollowingModal] = useState(false);
 
   const { address, isConnected } = useAccount();
   const publicClient = usePublicClient();
   const { data: walletClient } = useWalletClient();
+
+  // Get followers array
+  const { data: followersArray } = useReadContract({
+    address: SOCIAL_GRAPH_CONTRACT.address,
+    abi: SOCIAL_GRAPH_CONTRACT.abi,
+    functionName: 'getFollowers',
+    args: [address],
+    enabled: Boolean(address),
+  });
+
+  // Get following array
+  const { data: followingArray } = useReadContract({
+    address: SOCIAL_GRAPH_CONTRACT.address,
+    abi: SOCIAL_GRAPH_CONTRACT.abi,
+    functionName: 'getFollowing',
+    args: [address],
+    enabled: Boolean(address),
+  });
+
+  // Calculate counts from arrays
+  const followerCount = followersArray?.length || 0;
+  const followingCount = followingArray?.length || 0;
 
   // Initialize contractService using wagmi providers
   useEffect(() => {
@@ -134,8 +161,8 @@ export default function Dashboard() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-2 gap-4 mb-6">
-          <div className="bg-[#16030d] outline outline-2 outline-[#39071f] rounded-lg shadow-sm p-4 ">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          <div className="bg-[#16030d] outline outline-2 outline-[#39071f] rounded-lg shadow-sm p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-white">My Posts</p>
@@ -144,7 +171,7 @@ export default function Dashboard() {
               <Calendar className="h-8 w-8 text-pink-200" />
             </div>
           </div>
-          <div className="bg-[#16030d] outline outline-2 outline-[#39071f] rounded-lg shadow-sm p-4 ">
+          <div className="bg-[#16030d] outline outline-2 outline-[#39071f] rounded-lg shadow-sm p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-white">Global Posts</p>
@@ -153,6 +180,30 @@ export default function Dashboard() {
               <TrendingUp className="h-8 w-8 text-pink-200" />
             </div>
           </div>
+          <button
+            onClick={() => setShowFollowersModal(true)}
+            className="bg-[#16030d] outline outline-2 outline-[#39071f] hover:outline-[#ED3968] rounded-lg shadow-sm p-4 transition-all cursor-pointer text-left"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-white">Followers</p>
+                <p className="text-2xl font-bold text-white">{followerCount}</p>
+              </div>
+              <Users className="h-8 w-8 text-pink-200" />
+            </div>
+          </button>
+          <button
+            onClick={() => setShowFollowingModal(true)}
+            className="bg-[#16030d] outline outline-2 outline-[#39071f] hover:outline-[#ED3968] rounded-lg shadow-sm p-4 transition-all cursor-pointer text-left"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-white">Following</p>
+                <p className="text-2xl font-bold text-white">{followingCount}</p>
+              </div>
+              <UserPlus className="h-8 w-8 text-pink-200" />
+            </div>
+          </button>
         </div>
         
         {/* Upload Component */}
@@ -203,6 +254,20 @@ export default function Dashboard() {
           )}
         </div>
       </div>
+
+      {/* Modals */}
+      <FollowListModal
+        isOpen={showFollowersModal}
+        onClose={() => setShowFollowersModal(false)}
+        title="Followers"
+        addresses={followersArray}
+      />
+      <FollowListModal
+        isOpen={showFollowingModal}
+        onClose={() => setShowFollowingModal(false)}
+        title="Following"
+        addresses={followingArray}
+      />
     </div>
   );
 }

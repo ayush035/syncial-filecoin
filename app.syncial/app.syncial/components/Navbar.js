@@ -4,6 +4,7 @@ import Image from "next/image";
 import { Search, Menu } from "lucide-react";
 import { useState } from "react";
 import logo from "@/public/logo.jpg";
+import SearchFollowUser from "./SearchFollowUser";
 
 export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -22,13 +23,13 @@ export default function Navbar() {
           </Link>
 
           {/* Desktop Search Bar next to Logo */}
-          <div className="hidden md:flex items-center bg-[#16030d] rounded-xl w-60 ml-6 px-2 h-11 outline outline-1 outline-[#39071f]">
+          {/* <div className="hidden md:flex items-center bg-[#16030d] rounded-xl w-60 ml-6 px-2 h-11 outline outline-1 outline-[#39071f]">
             <Search className="text-[#563e4b] w-5 h-5 mr-2" />
             <input
               className="text-rose-100 bg-[#16030d] text-lg w-full h-full outline-none"
               placeholder="Search"
             />
-          </div>
+          </div> */}
         </div>
 
         {/* Right: Connect button & mobile menu toggle */}
@@ -44,6 +45,9 @@ export default function Navbar() {
         <div className="hidden md:flex text-lg text-[#ED3968] font-semibold hover:text-white ">
         <Link href={'/dashboard'}>Dashboard</Link>
           </div>
+
+          <SearchFollowUser
+      />
      
           <div className="hidden md:block">
             <ConnectButton />
