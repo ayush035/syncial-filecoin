@@ -221,7 +221,7 @@ const MintUsername = () => {
           const tx = await contractWithSigner.mintUsername(username);
           await tx.wait();
           
-          setStatus('✅ Username minted successfully!');
+          setStatus(' Username minted successfully!');
           setShowModal(true);
           return;
         } catch (error) {
@@ -244,23 +244,23 @@ const MintUsername = () => {
             await publicClient.waitForTransactionReceipt({ hash });
           }
 
-          setStatus('✅ Username minted successfully!');
+          setStatus(' Username minted successfully!');
           setShowModal(true);
         } catch (error) {
           console.error('WalletConnect transaction failed:', error);
           if (error.message.includes('rejected')) {
-            setStatus('❌ Transaction cancelled by user.');
+            setStatus(' Transaction cancelled by user.');
           } else {
-            setStatus('❌ Error minting username.');
+            setStatus(' Error minting username.');
           }
         }
       } else {
-        setStatus('❌ Wallet not properly connected.');
+        setStatus(' Wallet not properly connected.');
       }
 
     } catch (error) {
       console.error(error);
-      setStatus('❌ Error minting username.');
+      setStatus(' Error minting username.');
     }
   };
 

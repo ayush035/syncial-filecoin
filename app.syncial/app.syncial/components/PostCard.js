@@ -113,7 +113,7 @@ export default function PostCard({ post, showAuthor = true }) {
       <div className="mt-4 flex justify-between items-center text-sm text-gray-400">
         <div className="flex items-center space-x-4">
           <span>Post #{post.id}</span>
-          <span className="text-green-400">🗄️ Stored on Filecoin</span>
+          <span className="text-gray-400">Stored on Filecoin</span>
         </div>
         {!showAuthor && (
           <div className="flex items-center">
