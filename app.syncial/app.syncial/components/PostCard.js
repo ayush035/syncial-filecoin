@@ -1,7 +1,7 @@
 // components/PostCard.js - Uses server-side download API
 import { useState, useEffect } from 'react';
 import { User, Clock, Image as ImageIcon } from 'lucide-react';
-
+import Username from './Username'
 export default function PostCard({ post, showAuthor = true }) {
   const [imageUrl, setImageUrl] = useState(null);
   const [loading, setLoading] = useState(true);
