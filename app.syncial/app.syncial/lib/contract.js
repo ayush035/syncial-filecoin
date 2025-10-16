@@ -63,16 +63,21 @@ class ContractService {
     throw new Error('Unable to get signer - please ensure wallet is properly connected');
   }
 
-  // Create a new post - updated to work with WalletConnect
-  async createPost(imageRootHash) {
+  // Create a new post - updated to work with WalletConnect and privacy parameter
+  async createPost(imageRootHash, isPrivate = false) {
+    console.log('Creating post with privacy:', isPrivate); // Debug log
+    
     // If we have window.ethereum (injected wallet), use the traditional method
     if (typeof window !== "undefined" && window.ethereum) {
       try {
         const provider = new ethers.BrowserProvider(window.ethereum);
         const signer = await provider.getSigner();
         const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
-        const tx = await contract.createPost(imageRootHash);
+        
+        // Pass both parameters to createPost
+        const tx = await contract.createPost(imageRootHash, isPrivate);
         const receipt = await tx.wait();
+        
         return {
           hash: tx.hash,
           receipt,
@@ -87,12 +92,12 @@ class ContractService {
     // For WalletConnect, we need to use wagmi's approach
     if (this.walletClient) {
       try {
-        // Use wagmi's writeContract approach
+        // Use wagmi's writeContract approach with privacy parameter
         const hash = await this.walletClient.writeContract({
           address: CONTRACT_ADDRESS,
           abi: CONTRACT_ABI,
           functionName: 'createPost',
-          args: [imageRootHash],
+          args: [imageRootHash, isPrivate], // Pass both parameters
         });
         
         // Wait for transaction receipt
@@ -121,76 +126,226 @@ class ContractService {
     throw new Error('No suitable wallet connection method available');
   }
 
-  // Get posts of a user - this should work with read-only provider
-  async getUserPosts(userAddress) {
-    try {
-      // For WalletConnect connections, we need to use the provider with the specific address
-      const provider = await this._getProvider();
-      const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, provider);
-      
-      // If your contract has a method to get posts by address, use that
-      // Otherwise, we'll need to call getMyPosts with a signer
-      
-      // First try: if contract has getUserPosts(address) method
+  // Delete a post
+  async deletePost(postId) {
+    console.log('Deleting post:', postId);
+    
+    // If we have window.ethereum (injected wallet)
+    if (typeof window !== "undefined" && window.ethereum) {
       try {
-        if (userAddress) {
-          // Try calling a method that accepts address parameter (you may need to add this to your contract)
-          const posts = await contract.getUserPosts(userAddress);
-          return posts.map((post) => ({
-            id: post.id.toString(),
-            author: post.author,
-            image: post.image,
-            timestamp: new Date(Number(post.timestamp) * 1000),
-            timestampUnix: Number(post.timestamp),
-          }));
-        }
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const signer = await provider.getSigner();
+        const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
+        
+        const tx = await contract.deletePost(postId);
+        const receipt = await tx.wait();
+        
+        return {
+          hash: tx.hash,
+          receipt,
+          success: receipt.status === 1,
+        };
       } catch (error) {
-        console.log('getUserPosts(address) method not available, trying getMyPosts with signer');
+        console.log('Injected wallet transaction failed:', error.message);
       }
-      
-      // Second try: use signer for getMyPosts (this should work with WalletConnect)
-      try {
-        const signer = await this._getSigner();
-        const contractWithSigner = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
-        
-        // Call getMyPosts WITHOUT any argument
-        const posts = await contractWithSigner.getMyPosts();
-        
-        // Map the posts
-        return posts.map((post) => ({
-          id: post.id.toString(),
-          author: post.author,
-          image: post.image,
-          timestamp: new Date(Number(post.timestamp) * 1000),
-          timestampUnix: Number(post.timestamp),
-        }));
-      } catch (signerError) {
-        console.log('Signer method failed:', signerError.message);
-        
-        // Third try: Get all posts and filter by user address
-        try {
-          const allPosts = await contract.getAllPosts(); // You may need this method in your contract
-          const userPosts = allPosts.filter(post => post.author.toLowerCase() === userAddress.toLowerCase());
-          
-          return userPosts.map((post) => ({
-            id: post.id.toString(),
-            author: post.author,
-            image: post.image,
-            timestamp: new Date(Number(post.timestamp) * 1000),
-            timestampUnix: Number(post.timestamp),
-          }));
-        } catch (allPostsError) {
-          console.log('getAllPosts method not available');
-          throw new Error('Unable to fetch user posts with current connection method');
-        }
-      }
-      
-    } catch (error) {
-      console.error('Error in getUserPosts:', error);
-      throw error;
     }
+    
+    // For WalletConnect
+    if (this.walletClient) {
+      try {
+        const hash = await this.walletClient.writeContract({
+          address: CONTRACT_ADDRESS,
+          abi: CONTRACT_ABI,
+          functionName: 'deletePost',
+          args: [postId],
+        });
+        
+        if (this.publicClient) {
+          const receipt = await this.publicClient.waitForTransactionReceipt({ hash });
+          return {
+            hash: hash,
+            receipt,
+            success: receipt.status === 'success',
+          };
+        }
+        
+        return {
+          hash: hash,
+          receipt: null,
+          success: true,
+        };
+        
+      } catch (error) {
+        console.error('Delete post transaction failed:', error);
+        throw error;
+      }
+    }
+    
+    throw new Error('No suitable wallet connection method available');
   }
 
+  // Set post privacy
+  async setPostPrivacy(postId, isPrivate) {
+    console.log('Setting post privacy:', postId, isPrivate);
+    
+    // If we have window.ethereum (injected wallet)
+    if (typeof window !== "undefined" && window.ethereum) {
+      try {
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const signer = await provider.getSigner();
+        const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
+        
+        const tx = await contract.setPostPrivacy(postId, isPrivate);
+        const receipt = await tx.wait();
+        
+        return {
+          hash: tx.hash,
+          receipt,
+          success: receipt.status === 1,
+        };
+      } catch (error) {
+        console.log('Injected wallet transaction failed:', error.message);
+      }
+    }
+    
+    // For WalletConnect
+    if (this.walletClient) {
+      try {
+        const hash = await this.walletClient.writeContract({
+          address: CONTRACT_ADDRESS,
+          abi: CONTRACT_ABI,
+          functionName: 'setPostPrivacy',
+          args: [postId, isPrivate],
+        });
+        
+        if (this.publicClient) {
+          const receipt = await this.publicClient.waitForTransactionReceipt({ hash });
+          return {
+            hash: hash,
+            receipt,
+            success: receipt.status === 'success',
+          };
+        }
+        
+        return {
+          hash: hash,
+          receipt: null,
+          success: true,
+        };
+        
+      } catch (error) {
+        console.error('Set privacy transaction failed:', error);
+        throw error;
+      }
+    }
+    
+    throw new Error('No suitable wallet connection method available');
+  }
+
+  // Get posts of a user - this should work with read-only provider
+// Get posts of a user - FIXED to always get user's posts including private ones
+// Get posts of a user - IMPROVED to reliably detect own posts
+async getUserPosts(userAddress) {
+  try {
+    console.log('🔍 getUserPosts called for:', userAddress);
+    
+    // Get the current connected address from multiple sources
+    let currentAddress = null;
+    
+    // Try 1: From walletClient
+    if (this.walletClient?.account?.address) {
+      currentAddress = this.walletClient.account.address;
+      console.log('✅ Got address from walletClient:', currentAddress);
+    }
+    
+    // Try 2: From wagmi hook (passed in)
+    if (!currentAddress && typeof window !== 'undefined' && window.ethereum) {
+      try {
+        const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+        if (accounts && accounts.length > 0) {
+          currentAddress = accounts[0];
+          console.log('✅ Got address from window.ethereum:', currentAddress);
+        }
+      } catch (error) {
+        console.log('Could not get address from window.ethereum');
+      }
+    }
+    
+    console.log('Current address:', currentAddress);
+    console.log('Requested address:', userAddress);
+    console.log('Are they same?', currentAddress?.toLowerCase() === userAddress?.toLowerCase());
+    
+    // If we're getting posts for the connected user, use getMyPosts
+    if (currentAddress && userAddress.toLowerCase() === currentAddress.toLowerCase()) {
+      console.log('✅ Fetching OWN posts using getMyPosts()');
+      
+      try {
+        // Use window.ethereum signer to call getMyPosts
+        if (typeof window !== "undefined" && window.ethereum) {
+          const provider = new ethers.BrowserProvider(window.ethereum);
+          const signer = await provider.getSigner();
+          const contractWithSigner = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
+          
+          const posts = await contractWithSigner.getMyPosts();
+          console.log('📦 Raw posts from getMyPosts:', posts);
+          console.log('📊 Number of posts:', posts.length);
+          
+          const formattedPosts = posts.map((post) => {
+            console.log('Post details:', {
+              id: post.id.toString(),
+              isPrivate: post.isPrivate,
+              isDeleted: post.isDeleted
+            });
+            
+            return {
+              id: post.id.toString(),
+              author: post.author,
+              image: post.image,
+              timestamp: new Date(Number(post.timestamp) * 1000),
+              timestampUnix: Number(post.timestamp),
+              isPrivate: post.isPrivate,
+              isDeleted: post.isDeleted,
+            };
+          });
+          
+          console.log('✅ Formatted posts from getMyPosts:', formattedPosts.length);
+          return formattedPosts;
+        }
+      } catch (error) {
+        console.error('❌ getMyPosts failed:', error);
+        throw error; // Don't fall back for own posts
+      }
+    }
+    
+    // For other users' posts, use getUserPosts(address) - respects privacy
+    console.log('📝 Fetching posts for ANOTHER user using getUserPosts(address)');
+    
+    const provider = await this._getProvider();
+    const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, provider);
+    
+    try {
+      const posts = await contract.getUserPosts(userAddress);
+      console.log('📦 Raw posts from getUserPosts:', posts);
+      
+      return posts.map((post) => ({
+        id: post.id.toString(),
+        author: post.author,
+        image: post.image,
+        timestamp: new Date(Number(post.timestamp) * 1000),
+        timestampUnix: Number(post.timestamp),
+        isPrivate: post.isPrivate || false,
+        isDeleted: post.isDeleted || false,
+      }));
+    } catch (error) {
+      console.error('❌ getUserPosts(address) failed:', error);
+      throw new Error('Unable to fetch user posts');
+    }
+    
+  } catch (error) {
+    console.error('❌ Error in getUserPosts:', error);
+    throw error;
+  }
+}
   // Get total posts
   async getTotalPosts() {
     const provider = await this._getProvider();

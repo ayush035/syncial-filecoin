@@ -1,7 +1,7 @@
 // components/ImageUpload.js - Users never touch Synapse
 import { useState } from 'react';
 import { useAccount, useWalletClient, usePublicClient } from 'wagmi';
-import { Upload, X, Image as ImageIcon } from 'lucide-react';
+import { Upload, X, Image as ImageIcon, Lock, Globe } from 'lucide-react';
 import { getContractService } from '@/lib/contract';
 import toast from 'react-hot-toast';
 
@@ -9,6 +9,7 @@ export default function ImageUpload({ onUploadSuccess }) {
   const [uploading, setUploading] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
   const [dragActive, setDragActive] = useState(false);
+  const [isPrivate, setIsPrivate] = useState(false);
   const { address, isConnected } = useAccount();
   const { data: walletClient } = useWalletClient();
   const publicClient = usePublicClient();
@@ -82,16 +83,17 @@ export default function ImageUpload({ onUploadSuccess }) {
          ? uploadResult.pieceCid["/"]
        : uploadResult.pieceCid;
       
-       const contractResult = await contractService.createPost(cid);      
+      // Pass isPrivate parameter to createPost
+      const contractResult = await contractService.createPost(cid, isPrivate);      
+      
       if (contractResult.success) {
-        toast.success('Post created successfully!', { id: loadingToast });
+        toast.success(`Post created successfully! ${isPrivate ? '(Private)' : '(Public)'}`, { id: loadingToast });
         
         setSelectedFile(null);
+        setIsPrivate(false); // Reset privacy toggle
         
         if (onUploadSuccess) {
-          
-            onUploadSuccess(uploadResult.pieceCid);
-        
+          onUploadSuccess(uploadResult.pieceCid);
         }
       } else {
         throw new Error('Blockchain transaction failed');
@@ -117,7 +119,10 @@ export default function ImageUpload({ onUploadSuccess }) {
     }
   };
 
-  const removeFile = () => setSelectedFile(null);
+  const removeFile = () => {
+    setSelectedFile(null);
+    setIsPrivate(false); // Reset when removing file
+  };
 
   if (!isConnected) {
     return (
@@ -173,23 +178,62 @@ export default function ImageUpload({ onUploadSuccess }) {
             </div>
           </div>
         ) : (
-          <div className="relative">
-            <div className="relative rounded-lg overflow-hidden">
-              <img
-                src={URL.createObjectURL(selectedFile)}
-                alt="Preview"
-                className="w-full h-64 object-cover"
-              />
-              <button
-                onClick={removeFile}
-                className="absolute top-2 right-2 p-1 bg-red-600 text-white rounded-full hover:bg-red-700"
-              >
-                <X className="h-4 w-4" />
-              </button>
+          <div className="space-y-4">
+            <div className="relative">
+              <div className="relative rounded-lg overflow-hidden">
+                <img
+                  src={URL.createObjectURL(selectedFile)}
+                  alt="Preview"
+                  className="w-full h-64 object-cover"
+                />
+                <button
+                  onClick={removeFile}
+                  className="absolute top-2 right-2 p-1 bg-red-600 text-white rounded-full hover:bg-red-700"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              <div className="mt-2 text-sm text-gray-400">
+                <p className="font-medium">{selectedFile.name}</p>
+                <p>{(selectedFile.size / 1024 / 1024).toFixed(2)} MB</p>
+              </div>
             </div>
-            <div className="mt-2 text-sm text-gray-400">
-              <p className="font-medium">{selectedFile.name}</p>
-              <p>{(selectedFile.size / 1024 / 1024).toFixed(2)} MB</p>
+
+            {/* Privacy Toggle */}
+            <div className="bg-[#0a0a0a] border border-[#39071f] rounded-lg p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  {isPrivate ? (
+                    <Lock className="h-5 w-5 text-[#ED3968]" />
+                  ) : (
+                    <Globe className="h-5 w-5 text-green-400" />
+                  )}
+                  <div>
+                    <p className="text-sm font-medium text-white">
+                      {isPrivate ? 'Private Post' : 'Public Post'}
+                    </p>
+                    <p className="text-xs text-gray-400">
+                      {isPrivate 
+                        ? 'Only you can see this post' 
+                        : 'Everyone can see this post'}
+                    </p>
+                  </div>
+                </div>
+                
+                {/* Toggle Switch */}
+                <button
+                  onClick={() => setIsPrivate(!isPrivate)}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#ED3968] focus:ring-offset-2 focus:ring-offset-[#16030d] ${
+                    isPrivate ? 'bg-[#ED3968]' : 'bg-gray-600'
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      isPrivate ? 'translate-x-6' : 'translate-x-1'
+                    }`}
+                  />
+                </button>
+              </div>
             </div>
           </div>
         )}

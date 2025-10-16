@@ -71,31 +71,49 @@ export default function Dashboard() {
       });
       return;
     }
-
+  
+    // Prevent double-loading
+    if (loading) {
+      console.log('⏸️ Already loading, skipping...');
+      return;
+    }
+  
     setLoading(true);
     try {
-      console.log('Loading posts for address:', address);
+      console.log('🔍 Loading posts for address:', address);
       const posts = await contractService.getUserPosts(address);
-      console.log('Loaded user posts:', posts);
+      console.log('📦 Loaded user posts:', posts);
+      console.log('📊 Post count:', posts.length);
+      
+      // Debug each post
+      posts.forEach((post, i) => {
+        console.log(`Post ${i + 1}:`, {
+          id: post.id,
+          isPrivate: post.isPrivate,
+          isDeleted: post.isDeleted
+        });
+      });
       
       // Format posts for Synapse - image field contains PieceCID
       const formattedPosts = posts.map(post => ({
-           ...post,
-             pieceCid: post.image, // normalize name
-             timestamp: post.timestampUnix * 1000
-           }));
-        
-           const sortedPosts = formattedPosts.sort((a, b) => b.timestampUnix - a.timestampUnix);
-           setUserPosts(sortedPosts);
-
+        ...post,
+        pieceCid: post.image, // normalize name
+        timestamp: post.timestampUnix * 1000
+      }));
+      
+      const sortedPosts = formattedPosts.sort((a, b) => b.timestampUnix - a.timestampUnix);
+      
+      console.log('✅ Setting posts in state:', sortedPosts.length);
+      setUserPosts(sortedPosts);
+  
       const totalGlobal = await contractService.getTotalPosts();
       setStats({
         totalPosts: posts.length,
         totalGlobal
       });
-
+  
     } catch (error) {
-      console.error('Error loading posts:', error);
+      console.error('❌ Error loading posts:', error);
       if (error.message.includes('Unable to fetch user posts')) {
         toast.error('Unable to load posts with current connection. Try refreshing or reconnecting your wallet.');
       } else if (!error.message.includes('wallet provider') && !error.message.includes('MetaMask')) {
@@ -135,6 +153,85 @@ export default function Dashboard() {
   const handleRefresh = () => {
     loadUserPosts();
     toast.success('Posts refreshed!');
+  };
+
+  // Handle post deletion
+  const handleDeletePost = async (postId) => {
+    if (!contractService) {
+      toast.error('Contract service not initialized');
+      return;
+    }
+
+    const loadingToast = toast.loading('Deleting post...');
+    
+    try {
+      const result = await contractService.deletePost(postId);
+      
+      if (result.success) {
+        toast.success('Post deleted successfully!', { id: loadingToast });
+        
+        // Remove post from UI
+        setUserPosts(prev => prev.filter(post => post.id !== postId));
+        
+        // Update stats
+        setStats(prev => ({
+          ...prev,
+          totalPosts: prev.totalPosts - 1
+        }));
+      } else {
+        throw new Error('Delete transaction failed');
+      }
+    } catch (error) {
+      console.error('Delete post error:', error);
+      
+      let errorMessage = 'Failed to delete post';
+      if (error.message.includes('user rejected')) {
+        errorMessage = 'Transaction cancelled';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      toast.error(errorMessage, { id: loadingToast });
+    }
+  };
+
+  // Handle privacy toggle
+  const handleTogglePrivacy = async (postId, currentPrivacy) => {
+    if (!contractService) {
+      toast.error('Contract service not initialized');
+      return;
+    }
+
+    const newPrivacy = !currentPrivacy;
+    const loadingToast = toast.loading(`Making post ${newPrivacy ? 'private' : 'public'}...`);
+    
+    try {
+      const result = await contractService.setPostPrivacy(postId, newPrivacy);
+      
+      if (result.success) {
+        toast.success(`Post is now ${newPrivacy ? 'private' : 'public'}!`, { id: loadingToast });
+        
+        // Update post in UI
+        setUserPosts(prev => prev.map(post => 
+          post.id === postId 
+            ? { ...post, isPrivate: newPrivacy }
+            : post
+        ));
+      } else {
+        throw new Error('Privacy update transaction failed');
+      }
+    } catch (error) {
+      console.error('Toggle privacy error:', error);
+      
+      let errorMessage = 'Failed to update privacy';
+      if (error.message.includes('user rejected')) {
+        errorMessage = 'Transaction cancelled';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      toast.error(errorMessage, { id: loadingToast });
+    }
   };
 
   if (!isConnected) {
@@ -248,6 +345,9 @@ export default function Dashboard() {
                   key={`${post.id}-${post.timestampUnix}`} 
                   post={post} 
                   showAuthor={false}
+                  isOwner={true}
+                  onDelete={handleDeletePost}
+                  onTogglePrivacy={handleTogglePrivacy}
                 />
               ))}
             </div>

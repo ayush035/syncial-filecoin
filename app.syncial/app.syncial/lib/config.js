@@ -1,5 +1,36 @@
-export const CONTRACT_ADDRESS = "0xA46B02adA701EB34Ad9AC8feB786F575208a4c46";
+export const CONTRACT_ADDRESS = "0x4b5548Dc9B2c50FA419B3A35789837f96A7dD7B1";
 export const CONTRACT_ABI = [
+	{
+		"inputs": [
+			{
+				"internalType": "string",
+				"name": "image",
+				"type": "string"
+			},
+			{
+				"internalType": "bool",
+				"name": "isPrivate",
+				"type": "bool"
+			}
+		],
+		"name": "createPost",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "postId",
+				"type": "uint256"
+			}
+		],
+		"name": "deletePost",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
 	{
 		"inputs": [],
 		"stateMutability": "nonpayable",
@@ -31,20 +62,75 @@ export const CONTRACT_ABI = [
 				"internalType": "uint256",
 				"name": "timestamp",
 				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "bool",
+				"name": "isPrivate",
+				"type": "bool"
 			}
 		],
 		"name": "PostCreated",
 		"type": "event"
 	},
 	{
+		"anonymous": false,
 		"inputs": [
 			{
-				"internalType": "string",
-				"name": "image",
-				"type": "string"
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "id",
+				"type": "uint256"
+			},
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "author",
+				"type": "address"
 			}
 		],
-		"name": "createPost",
+		"name": "PostDeleted",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "id",
+				"type": "uint256"
+			},
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "author",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "bool",
+				"name": "isPrivate",
+				"type": "bool"
+			}
+		],
+		"name": "PostPrivacyChanged",
+		"type": "event"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "postId",
+				"type": "uint256"
+			},
+			{
+				"internalType": "bool",
+				"name": "isPrivate",
+				"type": "bool"
+			}
+		],
+		"name": "setPostPrivacy",
 		"outputs": [],
 		"stateMutability": "nonpayable",
 		"type": "function"
@@ -74,6 +160,16 @@ export const CONTRACT_ABI = [
 						"internalType": "uint256",
 						"name": "timestamp",
 						"type": "uint256"
+					},
+					{
+						"internalType": "bool",
+						"name": "isPrivate",
+						"type": "bool"
+					},
+					{
+						"internalType": "bool",
+						"name": "isDeleted",
+						"type": "bool"
 					}
 				],
 				"internalType": "struct SocialPosts.Post[]",
@@ -120,6 +216,16 @@ export const CONTRACT_ABI = [
 						"internalType": "uint256",
 						"name": "timestamp",
 						"type": "uint256"
+					},
+					{
+						"internalType": "bool",
+						"name": "isPrivate",
+						"type": "bool"
+					},
+					{
+						"internalType": "bool",
+						"name": "isDeleted",
+						"type": "bool"
 					}
 				],
 				"internalType": "struct SocialPosts.Post[]",
@@ -155,6 +261,16 @@ export const CONTRACT_ABI = [
 						"internalType": "uint256",
 						"name": "timestamp",
 						"type": "uint256"
+					},
+					{
+						"internalType": "bool",
+						"name": "isPrivate",
+						"type": "bool"
+					},
+					{
+						"internalType": "bool",
+						"name": "isDeleted",
+						"type": "bool"
 					}
 				],
 				"internalType": "struct SocialPosts.Post[]",
@@ -196,11 +312,110 @@ export const CONTRACT_ABI = [
 						"internalType": "uint256",
 						"name": "timestamp",
 						"type": "uint256"
+					},
+					{
+						"internalType": "bool",
+						"name": "isPrivate",
+						"type": "bool"
+					},
+					{
+						"internalType": "bool",
+						"name": "isDeleted",
+						"type": "bool"
 					}
 				],
 				"internalType": "struct SocialPosts.Post",
 				"name": "",
 				"type": "tuple"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "user",
+				"type": "address"
+			}
+		],
+		"name": "getUserPosts",
+		"outputs": [
+			{
+				"components": [
+					{
+						"internalType": "uint256",
+						"name": "id",
+						"type": "uint256"
+					},
+					{
+						"internalType": "address",
+						"name": "author",
+						"type": "address"
+					},
+					{
+						"internalType": "string",
+						"name": "image",
+						"type": "string"
+					},
+					{
+						"internalType": "uint256",
+						"name": "timestamp",
+						"type": "uint256"
+					},
+					{
+						"internalType": "bool",
+						"name": "isPrivate",
+						"type": "bool"
+					},
+					{
+						"internalType": "bool",
+						"name": "isDeleted",
+						"type": "bool"
+					}
+				],
+				"internalType": "struct SocialPosts.Post[]",
+				"name": "",
+				"type": "tuple[]"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "postId",
+				"type": "uint256"
+			}
+		],
+		"name": "isPostDeleted",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "postId",
+				"type": "uint256"
+			}
+		],
+		"name": "isPostPrivate",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
 			}
 		],
 		"stateMutability": "view",
@@ -218,32 +433,24 @@ export const CONTRACT_ABI = [
 		],
 		"stateMutability": "view",
 		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "user",
+				"type": "address"
+			}
+		],
+		"name": "totalUserPosts",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
 	}
 ]
-
-export const ZG_CONFIG = {
-  RPC_URL: 'https://evmrpc-testnet.0g.ai/',
-  INDEXER_RPC: 'https://indexer-storage-testnet-turbo.0g.ai'
-};
-
-// 0G Newton Testnet configuration for Rainbow
-export const ZG_TESTNET_CONFIG = {
-  id: 16600,
-  name: '0G Newton Testnet',
-  nativeCurrency: {
-    decimals: 18,
-    name: '0G',
-    symbol: '0G',
-  },
-  rpcUrls: {
-    default: {
-      http: ['https://evmrpc-testnet.0g.ai/'],
-    },
-  },
-  blockExplorers: {
-    default: {
-      name: '0G Explorer',
-      url: 'https://chainscan-newton.0g.ai/',
-    },
-  },
-};
